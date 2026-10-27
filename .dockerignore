@@ -19,3 +19,6 @@ workspace
 .autopilot
 .vercel
 .vscode
+
+# The web chat logo is required by the shipped interface.
+!public/webchat/logo.png

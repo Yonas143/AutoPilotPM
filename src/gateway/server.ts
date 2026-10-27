@@ -471,7 +471,7 @@ export function createServer(
       description: 'AI assistant for prediction markets',
       endpoints: {
         websocket: '/ws',
-        webchat: '/chat',
+        webchat: '/webchat/',
         tickStream: '/api/ticks/stream',
         health: '/health',
         healthDeep: '/health?deep=true',
@@ -840,6 +840,9 @@ export function createServer(
       res.status(500).json({ error: 'Failed to update session' });
     }
   });
+
+  // /chat remains the WebSocket endpoint; normal browser requests go to the UI.
+  app.get('/chat', (_req, res) => res.redirect(302, '/webchat/'));
 
   // ── Static webchat files (no-cache to ensure updates propagate immediately) ──
   app.use('/webchat', express.static(join(__dirname, '../../public/webchat'), {
@@ -2428,18 +2431,22 @@ export function createServer(
         const data = await res.json();
         render(data);
       } catch (err) {
-        content.innerHTML = '<div class="error">Failed to load performance data. Make sure trading is enabled.</div>';
+        content.innerHTML = '<div class="error">Could not load performance data. Try Refresh; if it persists, check the service logs.</div>';
       }
     }
 
     function formatCurrency(val) {
-      const sign = val >= 0 ? '+' : '';
+      const sign = val >= 0 ? '+' : '-';
       return sign + '$' + Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function formatPercent(val) {
       const sign = val >= 0 ? '+' : '';
       return sign + val.toFixed(2) + '%';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
     }
 
     function render(data) {
@@ -2503,11 +2510,11 @@ export function createServer(
               \${recentTrades.map(t => \`
                 <tr>
                   <td>\${new Date(t.timestamp).toLocaleString()}</td>
-                  <td>\${t.market.slice(0, 40)}\${t.market.length > 40 ? '...' : ''}</td>
+                  <td>\${escapeHtml(t.market.slice(0, 40))}\${t.market.length > 40 ? '...' : ''}</td>
                   <td><span class="badge \${t.side.toLowerCase()}">\${t.side}</span></td>
                   <td>$\${t.size.toLocaleString()}</td>
                   <td>\${(t.entryPrice * 100).toFixed(1)}%</td>
-                  <td>\${t.exitPrice ? (t.exitPrice * 100).toFixed(1) + '%' : '-'}</td>
+                  <td>\${t.exitPrice != null ? (t.exitPrice * 100).toFixed(1) + '%' : '-'}</td>
                   <td class="\${(t.pnl || 0) >= 0 ? 'positive' : 'negative'}">\${t.pnl != null ? formatCurrency(t.pnl) : '-'}</td>
                   <td><span class="badge \${t.status === 'win' ? 'win' : t.status === 'loss' ? 'loss' : 'open'}">\${t.status}</span></td>
                 </tr>
