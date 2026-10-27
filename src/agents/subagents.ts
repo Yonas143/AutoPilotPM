@@ -18,6 +18,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { logger } from '../utils/logger';
 import Anthropic from '@anthropic-ai/sdk';
+import { createAgentClient, resolveAgentModel, AgentClient } from './client';
 
 // =============================================================================
 // TYPES
@@ -469,7 +470,7 @@ export interface SubagentManager {
   /** Set result announcer callback */
   setAnnouncer(fn: (state: SubagentState) => Promise<void>): void;
   /** Set Anthropic client */
-  setClient(client: Anthropic): void;
+  setClient(client: AgentClient): void;
 }
 
 /**
@@ -478,7 +479,7 @@ export interface SubagentManager {
 export function createSubagentManager(): SubagentManager {
   const registry = createRunRegistry();
   let announcer: ((state: SubagentState) => Promise<void>) | null = null;
-  let anthropicClient: Anthropic | null = null;
+  let anthropicClient: AgentClient | null = null;
 
   /**
    * Create initial state for a new run
@@ -542,22 +543,18 @@ export function createSubagentManager(): SubagentManager {
 
     // Ensure we have a client
     if (!anthropicClient) {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) {
+      try {
+        anthropicClient = createAgentClient();
+      } catch (error) {
         state.status = 'failed';
-        state.error = {
-          message: 'ANTHROPIC_API_KEY not set',
-          category: 'auth',
-          retryable: false,
-        };
+        state.error = { message: error instanceof Error ? error.message : String(error), category: 'auth', retryable: false };
         saveSubagentState(state);
-        run.events.emit('error', new Error('ANTHROPIC_API_KEY not set'));
+        run.events.emit('error', error);
         return state;
       }
-      anthropicClient = new Anthropic({ apiKey });
     }
 
-    const model = state.config.model || 'claude-sonnet-4-6';
+    const model = resolveAgentModel(state.config.model);
     const maxTurns = state.config.maxTurns || 10;
     const timeout = state.config.timeout || 300000; // 5 min default
 

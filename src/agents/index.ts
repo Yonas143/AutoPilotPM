@@ -4,6 +4,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createAgentClient, resolveAgentModel, AgentClient } from './client';
 import { spawn, spawnSync, ChildProcess, execSync, execFileSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import { generateId as generateSecureId } from '../utils/id';
@@ -443,7 +444,7 @@ function limitItems<T extends { key?: string; value?: string }>(items: T[] | und
 }
 
 async function extractMemoryWithClaude(
-  client: Anthropic,
+  client: AgentClient,
   text: string,
   maxItems: number
 ): Promise<MemoryExtractionResult | null> {
@@ -16957,12 +16958,7 @@ export async function createAgentManager(
   webhookToolProvider?: () => WebhookTool | undefined,
   executionService?: ExecutionServiceRef | null
 ): Promise<AgentManager> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is required');
-  }
-
-  const client = new Anthropic({ apiKey });
+  const client = createAgentClient();
   const skills = createSkillManager(config.agents.defaults.workspace);
   let credentials: CredentialsManager;
   try {
@@ -17246,7 +17242,7 @@ export async function createAgentManager(
         ...defaultModelChain,
         strategy: getModelStrategy(),
       });
-      const modelId = session.context.modelOverride || adaptiveModel;
+      const modelId = resolveAgentModel(session.context.modelOverride || adaptiveModel);
       logger.info({ modelId, strategy: getModelStrategy() }, 'Selected model');
 
       let streamedResponseSent = false;
@@ -17271,6 +17267,7 @@ export async function createAgentManager(
       };
 
       const canStreamResponse =
+        Boolean(client.messages.stream) &&
         STREAM_RESPONSES_ENABLED &&
         Boolean(editMessage) &&
         STREAM_RESPONSE_PLATFORMS.has(processedMessage.platform);
@@ -17348,7 +17345,7 @@ export async function createAgentManager(
               updateTimer = null;
             }
 
-            const stream = client.messages.stream(params);
+            const stream = client.messages.stream!(params);
             stream.on('text', (_delta, fullText) => {
               streamHasOutput = true;
               pendingText = fullText;

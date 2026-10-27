@@ -3,6 +3,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createAgentClient } from '../agents/client';
 import { logger } from '../utils/logger';
 
 export type SummarizerFn = (text: string, maxTokens: number) => Promise<string>;
@@ -16,9 +17,9 @@ const DEFAULT_SUMMARY_MODEL = process.env.AUTOPILOT_SUMMARY_MODEL || 'claude-hai
 
 export function createClaudeSummarizer(options: ClaudeSummarizerOptions = {}): SummarizerFn | undefined {
   const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return undefined;
+  if (!apiKey && !process.env.GEMINI_API_KEY) return undefined;
 
-  const client = new Anthropic({ apiKey });
+  const client = options.apiKey ? new Anthropic({ apiKey: options.apiKey }) : createAgentClient();
   const model = options.model || DEFAULT_SUMMARY_MODEL;
 
   return async (text: string, maxTokens: number): Promise<string> => {

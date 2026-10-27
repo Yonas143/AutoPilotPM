@@ -500,7 +500,7 @@ export function createServer(
     {
       category: 'Core',
       vars: [
-        { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key', secret: true, required: true, helpUrl: 'https://console.anthropic.com' },
+        { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key (or use Gemini)', secret: true, required: false, helpUrl: 'https://console.anthropic.com' },
         { key: 'AUTOPILOT_LOCALE', label: 'Language (en, es, zh, ja, ko...)', secret: false, required: false },
       ],
     },

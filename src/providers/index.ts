@@ -86,7 +86,7 @@ export class GeminiProvider implements Provider {
   name = 'gemini';
   private apiKey: string;
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-  private defaultModel = process.env.AUTOPILOT_GEMINI_MODEL || 'gemini-1.5-pro';
+  private defaultModel = process.env.AUTOPILOT_GEMINI_MODEL || 'gemini-3.8-flash';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;

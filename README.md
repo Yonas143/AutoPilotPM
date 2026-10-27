@@ -121,6 +121,10 @@ Create `.env` from `.env.example` and add only the credentials required by the i
 
 ```dotenv
 ANTHROPIC_API_KEY=
+# Or use Gemini instead:
+GEMINI_API_KEY=
+# AUTOPILOT_AI_PROVIDER=gemini
+# AUTOPILOT_GEMINI_MODEL=gemini-3.8-flash
 
 AUTOPILOT_TOKEN=<long-random-token>
 WEBCHAT_TOKEN=<different-long-random-token>
@@ -130,6 +134,15 @@ DRY_RUN=true
 TELEGRAM_BOT_TOKEN=
 DISCORD_BOT_TOKEN=
 ```
+
+For Gemini on Render, set `GEMINI_API_KEY` and `AUTOPILOT_AI_PROVIDER=gemini` in
+Environment, keep `DRY_RUN=true`, then deploy the latest commit. Do not store keys
+in this repository. `AUTOPILOT_GEMINI_MODEL` optionally selects a different Gemini
+model your API project can access (default: `gemini-3.8-flash`). API billing and
+quota belong to the Google AI Studio project. Gemini uses complete responses
+rather than incremental chat streaming. Main chat, tool calls, helper agents and
+context summaries use the selected provider; standalone Claude-specific vision
+utilities still require Anthropic. Bybit demo routing is a separate integration.
 
 Local state is stored under `~/.autopilot/` unless overridden with `AUTOPILOT_STATE_DIR`, `AUTOPILOT_WORKSPACE` or `AUTOPILOT_CONFIG_PATH`.
 

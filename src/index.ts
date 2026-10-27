@@ -18,6 +18,7 @@ dotenvConfig();
 import { createGateway } from './gateway/index';
 import { loadConfig } from './utils/config';
 import { logger } from './utils/logger';
+import { validateAgentCredentials } from './agents/client';
 import { installHttpClient, configureHttpClient } from './utils/http';
 
 // =============================================================================
@@ -114,13 +115,10 @@ function validateStartupRequirements(): void {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check for Anthropic API key (required for AI functionality)
-  if (!process.env.ANTHROPIC_API_KEY) {
-    errors.push(
-      'ANTHROPIC_API_KEY is not set. The AI agent will not function.\n' +
-      '  Fix: Add ANTHROPIC_API_KEY=sk-ant-... to your .env file\n' +
-      '  Or run: autopilot onboard'
-    );
+  try {
+    validateAgentCredentials();
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
 
   // Auto-generate credential encryption key if not set
