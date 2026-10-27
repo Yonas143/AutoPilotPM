@@ -1,0 +1,49 @@
+name: Docker build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - package.json
+      - package-lock.json
+      - scripts/**
+      - src/**
+      - tsconfig.json
+      - .github/workflows/docker-build.yml
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DRY_RUN: 'true'
+      DRIFT_DRY_RUN: 'true'
+      PERCOLATOR_DRY_RUN: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Build builder and production stages
+        run: docker build --progress=plain --tag autopilot:docker-test .
+      - name: Verify image without starting trading services
+        run: |
+          docker run --rm --network none --entrypoint node \
+            -e DRY_RUN=true -e DRIFT_DRY_RUN=true -e PERCOLATOR_DRY_RUN=true \
+            autopilot:docker-test -e '
+              const assert = require("node:assert/strict");
+              const fs = require("node:fs");
+              for (const file of ["scripts/fix-native-bindings.js", "scripts/fix-anchor-bn-export.js", "dist/index.js"]) {
+                assert.ok(fs.existsSync(file), `${file} missing from image`);
+              }
+              assert.notEqual(process.getuid(), 0, "Image must run as a non-root user");
+              assert.equal(process.env.DRY_RUN, "true");
+              assert.ok(!fs.existsSync(".env"), ".env must not be copied into image");
+              fs.accessSync("/data/workspace", fs.constants.W_OK);
+              console.log("Image checks passed; trading application was not started.");
+            '

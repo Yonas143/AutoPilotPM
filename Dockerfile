@@ -3,6 +3,7 @@ FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json tsconfig.json ./
+COPY scripts ./scripts
 COPY src ./src
 
 RUN npm ci --legacy-peer-deps
@@ -18,6 +19,7 @@ ENV AUTOPILOT_STATE_DIR=/data
 ENV AUTOPILOT_WORKSPACE=/data/workspace
 
 COPY package.json package-lock.json ./
+COPY scripts ./scripts
 RUN npm ci --omit=dev --legacy-peer-deps
 
 COPY --from=builder /app/dist ./dist
