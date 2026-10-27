@@ -1,3 +1,4 @@
+import { resolveAgentModel } from '../agents/client';
 /**
  * Commands Service - Clawdbot-style slash commands
  *
@@ -228,7 +229,7 @@ export function createCommandsService(
 
         case '/model': {
           const defaultModel = process.env.ANTHROPIC_MODEL || 'claude-opus-4-6';
-          const currentModel = session.context.modelOverride || defaultModel;
+          const currentModel = resolveAgentModel(session.context.modelOverride || defaultModel);
 
           // If no argument, show current model
           if (args.length === 0) {
@@ -254,7 +255,7 @@ export function createCommandsService(
           const resolvedModel = MODEL_ALIASES[requestedModel] || requestedModel;
 
           // Validate it looks like a Claude model
-          if (!resolvedModel.startsWith('claude-')) {
+          if (!/^(claude|gemini)-[a-z0-9._-]+$/.test(resolvedModel)) {
             return {
               handled: true,
               response:

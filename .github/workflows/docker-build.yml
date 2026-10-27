@@ -12,6 +12,7 @@ on:
       - src/**
       - public/**
       - tests/unit/performance-dashboard.test.cjs
+      - tests/unit/webchat-send.test.cjs
       - tests/unit/gemini-agent.test.cjs
       - tests/integration/gemini-startup.test.cjs
       - tsconfig.json
@@ -39,7 +40,8 @@ jobs:
         run: |
           docker run --rm --network none --entrypoint node \
             -v "$PWD/tests/unit:/app/tests/unit:ro" \
-            autopilot:docker-test --test tests/unit/gemini-agent.test.cjs tests/unit/performance-dashboard.test.cjs
+            -v "$PWD/public/webchat:/app/public/webchat:ro" \
+            autopilot:docker-test --test tests/unit/gemini-agent.test.cjs tests/unit/performance-dashboard.test.cjs tests/unit/webchat-send.test.cjs
       - name: Verify Gemini-only startup with no external network or exchange credentials
         run: |
           docker run --rm --network none --entrypoint node \

@@ -120,3 +120,34 @@ test('abort signals reach the request and model IDs cannot alter the endpoint', 
   process.env.AUTOPILOT_GEMINI_MODEL = 'gemini-bad/path?key=leak';
   await assert.rejects(client.messages.create(request), /Invalid Gemini model/);
 });
+
+test('temporary Gemini errors retry and Retry-After is bounded; permanent errors have safe user hints', async () => {
+  const { GeminiApiError } = require('../../dist/agents/client.js');
+  const { withRetry } = require('../../dist/infra/retry.js');
+  let attempts = 0;
+  const client = createGeminiAgentClient('secret', async () => ++attempts < 3
+    ? new Response('secret provider text', { status: 503 }) : reply([{ text: 'Recovered' }]));
+  const result = await withRetry(() => client.messages.create(request), { maxAttempts: 3, minDelay: 1, maxDelay: 2, jitter: 0 });
+  assert.equal(attempts, 3);
+  assert.equal(result.content[0].text, 'Recovered');
+  const busy = createGeminiAgentClient('secret', async () => new Response('secret', { status: 503, headers: { 'retry-after': '999' } }));
+  await assert.rejects(busy.messages.create(request), e => e instanceof GeminiApiError && e.retryAfter === 30000 && e.userMessage.includes('temporarily unavailable') && !e.message.includes('secret'));
+  assert.match(new GeminiApiError(429).userMessage, /quota/);
+  assert.match(new GeminiApiError(403).userMessage, /permissions/);
+  assert.match(new GeminiApiError(404).userMessage, /AUTOPILOT_GEMINI_MODEL/);
+});
+
+test('model command accepts Gemini IDs and reports the effective Gemini model', async () => {
+  clean();
+  process.env.GEMINI_API_KEY = 'test';
+  const { createDefaultCommands } = require('../../dist/commands/registry.js');
+  const command = createDefaultCommands().find(c => c.name === 'model');
+  const session = { context: {} };
+  let saved = false;
+  const ctx = { session, sessions: { updateSession() { saved = true; } } };
+  assert.match(await command.handler('gemini-3.5-flash-lite', ctx), /Model set to gemini-3.5-flash-lite/);
+  assert.equal(saved, true);
+  assert.equal(session.context.modelOverride, 'gemini-3.5-flash-lite');
+  assert.match(await command.handler('', ctx), /gemini-3.5-flash-lite/);
+  assert.match(await command.handler('gemini-bad/path', ctx), /Unknown model/);
+});

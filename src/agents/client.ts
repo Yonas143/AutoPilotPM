@@ -8,6 +8,30 @@ export interface AgentClient {
   };
 }
 
+/** Safe to display: never includes the provider response body or credentials. */
+export class GeminiApiError extends Error {
+  readonly status: number;
+  readonly retryAfter?: number;
+  readonly userMessage: string;
+
+  constructor(status: number, retryAfter?: number) {
+    const hint = status === 429
+      ? 'Gemini API quota or rate limit reached. Check your Google AI Studio API quota and billing, then try again.'
+      : status >= 500
+        ? 'Gemini is temporarily unavailable after retrying. Please try again shortly.'
+        : status === 401 || status === 403
+          ? 'Gemini API access was rejected. Check the Gemini API key and project permissions in Render.'
+          : status === 404
+            ? 'The configured Gemini model is unavailable. Check AUTOPILOT_GEMINI_MODEL in Render.'
+            : 'Gemini rejected the request. Check the Render Agent error logs for the request status.';
+    super(`Gemini API request failed (HTTP ${status}). ${hint}`);
+    this.name = 'GeminiApiError';
+    this.status = status;
+    this.retryAfter = retryAfter;
+    this.userMessage = `${hint} (HTTP ${status})`;
+  }
+}
+
 type Part = {
   text?: string;
   thought?: boolean;
@@ -102,9 +126,11 @@ export function createGeminiAgentClient(apiKey: string, fetcher: typeof fetch = 
         });
         if (!response.ok) {
           // Do not include request headers, URLs with credentials, or response bodies in logs.
-          const error = new Error(`Gemini API request failed (HTTP ${response.status}). Check key, model access, quota and API billing.`) as Error & { status: number };
-          error.status = response.status;
-          throw error;
+          const retryHeader = response.headers.get('retry-after');
+          const retrySeconds = retryHeader ? Number(retryHeader) : NaN;
+          const retryAfter = Number.isFinite(retrySeconds) && retrySeconds >= 0
+            ? Math.min(30_000, retrySeconds * 1000) : undefined;
+          throw new GeminiApiError(response.status, retryAfter);
         }
         const data = await response.json() as {
           candidates?: Array<{ content?: { parts?: Part[] }; finishReason?: string }>;

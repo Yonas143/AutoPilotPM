@@ -368,8 +368,11 @@ class App {
     });
 
     this.ws.on('message', (msg) => {
-      this.chat.hideTyping();
-      this._setGenerating(false);
+      // Transport acknowledgements are not assistant replies.
+      if (['message', 'edit', 'error'].includes(msg.type)) {
+        this.chat.hideTyping();
+        this._setGenerating(false);
+      }
 
       if (msg.type === 'authenticated') {
         statusDot.className = 'status-dot connected';
@@ -384,6 +387,7 @@ class App {
       } else if (msg.type === 'switched') {
         // Session switch confirmed
       } else if (msg.type === 'message') {
+        this._refreshSeq = (this._refreshSeq || 0) + 1;
         this._setWelcomeMode(false);
         this.chat.addBotMessage(msg.text, msg.messageId, msg.attachments);
         // Feed new bot message to sidebar for live artifact extraction
@@ -574,6 +578,8 @@ class App {
           Storage.set('lastSessionId', data.session.id);
 
           const token = Storage.get('webchat_token') || '';
+          // New sessions have no history to refresh; a late empty response could erase this first turn.
+          this._skipNextRefresh = true;
           this.ws.connect(token, this.userId, data.session.id);
           // Wait for auth with timeout
           await new Promise((resolve) => {
@@ -604,6 +610,8 @@ class App {
       return;
     }
 
+    // Invalidate any history request started before this local message.
+    this._refreshSeq = (this._refreshSeq || 0) + 1;
     this._setWelcomeMode(false);
     const displayText = text || (this._pendingAttachment ? '\uD83D\uDCCE ' + this._pendingAttachment.filename : '');
     if (displayText) this.chat.addMessage(displayText, 'user');

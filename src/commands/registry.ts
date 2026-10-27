@@ -1,3 +1,4 @@
+import { resolveAgentModel } from '../agents/client';
 /**
  * Slash Command Registry - shared command registration and handling
  *
@@ -1027,7 +1028,7 @@ export function createDefaultCommands(): CommandDefinition[] {
       handler: (args, ctx) => {
         const defaultModel = process.env.ANTHROPIC_MODEL || 'claude-opus-4-6';
         const currentModel =
-          ctx.session.context.modelOverride || ctx.session.context.model || defaultModel;
+          resolveAgentModel(ctx.session.context.modelOverride || ctx.session.context.model || defaultModel);
 
         if (!args) {
           return ['Current Model', currentModel, '', 'Usage: /model sonnet'].join('\n');
@@ -1045,8 +1046,8 @@ export function createDefaultCommands(): CommandDefinition[] {
         };
 
         const resolved = aliases[requested] || requested;
-        if (!resolved.startsWith('claude-')) {
-          return 'Unknown model. Try: sonnet, opus, haiku.';
+        if (!/^(claude|gemini)-[a-z0-9._-]+$/.test(resolved)) {
+          return 'Unknown model. Use sonnet, opus, haiku, or a Gemini model ID such as gemini-3.5-flash-lite.';
         }
 
         ctx.session.context.modelOverride = resolved;

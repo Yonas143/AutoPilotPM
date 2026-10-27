@@ -4,7 +4,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { createAgentClient, resolveAgentModel, AgentClient } from './client';
+import { createAgentClient, resolveAgentModel, getAgentProvider, GeminiApiError, AgentClient } from './client';
 import { spawn, spawnSync, ChildProcess, execSync, execFileSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import { generateId as generateSecureId } from '../utils/id';
@@ -17252,7 +17252,9 @@ export async function createAgentManager(
         return withRetry(
           () => client.messages.create(params) as Promise<Anthropic.Message>,
           {
-            ...RETRY_POLICIES.default.config,
+            ...(getAgentProvider() === 'gemini'
+              ? { ...RETRY_POLICIES.conservative.config, minDelay: 2000, maxDelay: 16000 }
+              : RETRY_POLICIES.default.config),
             onRetry: (info) => {
               logger.warn({
                 userId: session.userId,
@@ -18143,6 +18145,7 @@ export async function createAgentManager(
         error: error instanceof Error ? error : new Error(String(error)),
       });
 
+      if (error instanceof GeminiApiError) return error.userMessage;
       return 'Sorry, I encountered an error. Please try again.';
     }
   }

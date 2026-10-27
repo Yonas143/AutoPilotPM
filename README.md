@@ -181,3 +181,11 @@ Issues and releases are managed at <https://github.com/recogardtech/AutoPilotPM>
 ## License
 
 Released under the [MIT License](./LICENSE).
+
+If Gemini returns HTTP 503, the selected model is temporarily unavailable. The
+agent retries with exponential backoff and reports a clear error if retries are
+exhausted. To try a different Gemini model for a conversation, send
+`/model gemini-3.5-flash-lite` (or another Gemini model ID available to your API
+project). To change the default for new conversations, set
+`AUTOPILOT_GEMINI_MODEL` in Render. API quota errors (HTTP 429) require checking
+Google AI Studio API quota and billing.
