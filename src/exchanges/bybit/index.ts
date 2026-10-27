@@ -6,6 +6,8 @@
 
 import { RestClientV5 } from 'bybit-api';
 import { logger } from '../../utils/logger';
+import { resolveBybitEnvironment, isBybitDryRun } from './config';
+export { resolveBybitEnvironment, isBybitDryRun } from './config';
 
 // =============================================================================
 // TYPES
@@ -15,6 +17,7 @@ export interface BybitConfig {
   apiKey: string;
   apiSecret: string;
   testnet?: boolean;
+  demo?: boolean;
   dryRun?: boolean;
 }
 
@@ -65,18 +68,23 @@ export interface FundingRate {
 
 let client: RestClientV5 | null = null;
 let currentConfig: BybitConfig | null = null;
+let currentBaseUrl: string | null = null;
 
 function getClient(config: BybitConfig): RestClientV5 {
-  if (client && currentConfig?.apiKey === config.apiKey) {
+  const environment = resolveBybitEnvironment(config);
+  if (client && currentConfig?.apiKey === config.apiKey && currentConfig?.apiSecret === config.apiSecret && currentBaseUrl === environment.baseUrl) {
     return client;
   }
 
   client = new RestClientV5({
     key: config.apiKey,
     secret: config.apiSecret,
-    testnet: config.testnet,
-  });
-  currentConfig = config;
+    testnet: environment.testnet,
+    demoTrading: environment.demo,
+    baseUrl: environment.baseUrl,
+  }, { timeout: 15000 });
+  currentConfig = { ...config };
+  currentBaseUrl = environment.baseUrl;
 
   return client;
 }
@@ -122,7 +130,12 @@ export async function getMarkets(config: BybitConfig): Promise<string[]> {
 export async function getBalance(config: BybitConfig): Promise<Balance[]> {
   const c = getClient(config);
   const result = await c.getWalletBalance({ accountType: 'UNIFIED' });
-
+  if (result.retCode !== 0) {
+    const error = new Error(`Bybit wallet request failed (code ${result.retCode})`) as Error & { retCode: number };
+    error.retCode = result.retCode;
+    throw error;
+  }
+  if (!Array.isArray(result.result?.list)) throw new Error('Bybit returned an invalid wallet response');
   const coins = result.result.list[0]?.coin || [];
   return coins
     .filter((coin: { equity: string }) => parseFloat(coin.equity) > 0)
@@ -183,7 +196,7 @@ export async function setLeverage(
   symbol: string,
   leverage: number
 ): Promise<void> {
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, leverage }, '[DRY RUN] Set leverage');
     return;
   }
@@ -207,7 +220,7 @@ export async function openLong(
     await setLeverage(config, symbol, leverage);
   }
 
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, qty, leverage }, '[DRY RUN] Open long');
     return {
       orderId: Date.now().toString(),
@@ -254,7 +267,7 @@ export async function openShort(
     await setLeverage(config, symbol, leverage);
   }
 
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, qty, leverage }, '[DRY RUN] Open short');
     return {
       orderId: Date.now().toString(),
@@ -305,7 +318,7 @@ export async function closePosition(
   const side = position.side === 'Buy' ? 'Sell' : 'Buy';
   const qty = position.size;
 
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, side, qty }, '[DRY RUN] Close position');
     return {
       orderId: Date.now().toString(),
@@ -362,7 +375,7 @@ export async function cancelOrder(
   symbol: string,
   orderId: string
 ): Promise<boolean> {
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, orderId }, '[DRY RUN] Cancel order');
     return true;
   }
@@ -376,7 +389,7 @@ export async function cancelAllOrders(
   config: BybitConfig,
   symbol: string
 ): Promise<number> {
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol }, '[DRY RUN] Cancel all orders');
     return 0;
   }
@@ -394,7 +407,7 @@ export async function placeLimitOrder(
   price: number,
   params?: { reduceOnly?: boolean; timeInForce?: string }
 ): Promise<OrderResult> {
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, side, qty, price }, '[DRY RUN] Place limit order');
     return {
       orderId: Date.now().toString(),
@@ -442,7 +455,7 @@ export async function placeStopOrder(
   triggerPrice: number,
   params?: { price?: number }
 ): Promise<OrderResult> {
-  if (config.dryRun) {
+  if (isBybitDryRun(config)) {
     logger.info({ symbol, side, qty, triggerPrice }, '[DRY RUN] Place stop order');
     return {
       orderId: Date.now().toString(),

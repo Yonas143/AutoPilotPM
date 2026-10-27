@@ -13,6 +13,7 @@ on:
       - public/**
       - tests/unit/performance-dashboard.test.cjs
       - tests/unit/webchat-send.test.cjs
+      - tests/unit/bybit-demo.test.cjs
       - tests/unit/gemini-agent.test.cjs
       - tests/integration/gemini-startup.test.cjs
       - tsconfig.json
@@ -41,7 +42,7 @@ jobs:
           docker run --rm --network none --entrypoint node \
             -v "$PWD/tests/unit:/app/tests/unit:ro" \
             -v "$PWD/public/webchat:/app/public/webchat:ro" \
-            autopilot:docker-test --test tests/unit/gemini-agent.test.cjs tests/unit/performance-dashboard.test.cjs tests/unit/webchat-send.test.cjs
+            autopilot:docker-test --test tests/unit/gemini-agent.test.cjs tests/unit/performance-dashboard.test.cjs tests/unit/webchat-send.test.cjs tests/unit/bybit-demo.test.cjs
       - name: Verify Gemini-only startup with no external network or exchange credentials
         run: |
           docker run --rm --network none --entrypoint node \
@@ -59,6 +60,7 @@ jobs:
               }
               assert.notEqual(process.getuid(), 0, "Image must run as a non-root user");
               assert.equal(process.env.DRY_RUN, "true");
+              assert.equal(process.env.BYBIT_DEMO, "true");
               assert.ok(!fs.existsSync(".env"), ".env must not be copied into image");
               fs.accessSync("/data/workspace", fs.constants.W_OK);
               console.log("Image checks passed; trading application was not started.");

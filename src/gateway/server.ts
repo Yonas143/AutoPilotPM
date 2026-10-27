@@ -501,6 +501,7 @@ export function createServer(
       category: 'Core',
       vars: [
         { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key (or use Gemini)', secret: true, required: false, helpUrl: 'https://console.anthropic.com' },
+        { key: 'DRY_RUN', label: 'Simulate orders (true/false)', secret: false, required: false },
         { key: 'AUTOPILOT_LOCALE', label: 'Language (en, es, zh, ja, ko...)', secret: false, required: false },
       ],
     },
@@ -551,6 +552,8 @@ export function createServer(
         { key: 'BINANCE_API_SECRET', label: 'Binance API Secret', secret: true, required: false },
         { key: 'BINANCE_FUTURES_KEY', label: 'Binance Futures Key', secret: true, required: false },
         { key: 'BINANCE_FUTURES_SECRET', label: 'Binance Futures Secret', secret: true, required: false },
+        { key: 'BYBIT_DEMO', label: 'Bybit Demo mode (true/false)', secret: false, required: false },
+        { key: 'BYBIT_TESTNET', label: 'Bybit testnet (false for Demo)', secret: false, required: false },
         { key: 'BYBIT_API_KEY', label: 'Bybit API Key', secret: true, required: false },
         { key: 'BYBIT_API_SECRET', label: 'Bybit API Secret', secret: true, required: false },
         { key: 'MEXC_API_KEY', label: 'MEXC API Key', secret: true, required: false },

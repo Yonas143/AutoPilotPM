@@ -126,6 +126,7 @@ export interface FuturesConfig {
     apiKey: string;
     secretKey: string;
     testnet?: boolean;
+    demo?: boolean;
   };
   mexc?: {
     apiKey: string;
@@ -529,6 +530,7 @@ async function placeBybitFuturesOrder(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
 
     let result: bybit.OrderResult;
@@ -595,6 +597,7 @@ async function cancelBybitFuturesOrder(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     return await bybit.cancelOrder(bybitConfig, symbol, orderId);
   } catch (error) {
@@ -612,6 +615,7 @@ async function getBybitFuturesPositions(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     const positions = await bybit.getPositions(bybitConfig);
 
@@ -646,6 +650,7 @@ async function getBybitFuturesOpenOrders(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     const orders = await bybit.getOpenOrders(bybitConfig, symbol);
 
@@ -678,6 +683,7 @@ async function getBybitFuturesBalance(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     const balances = await bybit.getBalance(bybitConfig);
 
@@ -706,6 +712,7 @@ async function getBybitFundingRate(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     const data = await bybit.getFundingRate(bybitConfig, symbol);
 
@@ -734,6 +741,7 @@ async function setBybitLeverage(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     await bybit.setLeverage(bybitConfig, symbol, leverage);
     return true;
@@ -1271,6 +1279,7 @@ async function getBybitIncomeHistory(
       apiKey: config.apiKey,
       apiSecret: config.secretKey,
       testnet: config.testnet,
+      demo: config.demo,
     };
     const records = await bybit.getIncomeHistory(bybitConfig, params);
     return records.map(r => ({

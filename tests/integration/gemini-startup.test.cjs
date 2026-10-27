@@ -15,7 +15,7 @@ test('Gemini-only image reaches HTTP health without Anthropic or exchange creden
       AUTOPILOT_STATE_DIR: state, AUTOPILOT_WORKSPACE: join(state, 'workspace'),
       AUTOPILOT_CONFIG_PATH: join(state, 'config.json'),
       GEMINI_API_KEY: 'mock-key-not-used-for-requests', AUTOPILOT_AI_PROVIDER: 'gemini',
-      DRY_RUN: 'true', DRIFT_DRY_RUN: 'true', PERCOLATOR_DRY_RUN: 'true', WEBCHAT_TOKEN: 'test-webchat-token',
+      DRY_RUN: 'true', DRIFT_DRY_RUN: 'true', PERCOLATOR_DRY_RUN: 'true', BYBIT_DEMO: 'true', BYBIT_TESTNET: 'false', WEBCHAT_TOKEN: 'test-webchat-token',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -52,7 +52,12 @@ test('Gemini-only image reaches HTTP health without Anthropic or exchange creden
             ws.on('error', error => { clearTimeout(timer); reject(error); });
             ws.on('message', payload => {
               const message = JSON.parse(payload.toString());
-              if (message.type === 'authenticated') { clearTimeout(timer); ws.close(); resolve(); }
+              if (message.type === 'authenticated') ws.send(JSON.stringify({ type: 'message', text: '/bybit-demo' }));
+              if (message.type === 'message') {
+                clearTimeout(timer); ws.close();
+                if (message.text.includes('credentials missing')) resolve();
+                else reject(new Error('Read-only Bybit Demo command returned an unexpected result'));
+              }
               if (message.type === 'error') { clearTimeout(timer); ws.close(); reject(new Error(message.message)); }
             });
           });

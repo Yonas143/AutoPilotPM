@@ -1,3 +1,4 @@
+import { checkBybitDemoConnection } from '../exchanges/bybit/demo-status';
 import { resolveAgentModel } from '../agents/client';
 /**
  * Slash Command Registry - shared command registration and handling
@@ -1020,6 +1021,12 @@ export function createDefaultCommands(): CommandDefinition[] {
         const ok = execApprovals.recordDecision(requestId, 'deny', ctx.message.userId);
         return ok ? `Denied ${requestId}` : `Request not found: ${requestId}`;
       },
+    },
+    {
+      name: 'bybit-demo',
+      description: 'Verify the Bybit Demo wallet connection without placing orders',
+      usage: '/bybit-demo',
+      handler: () => checkBybitDemoConnection(),
     },
     {
       name: 'model',

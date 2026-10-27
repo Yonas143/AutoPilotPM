@@ -189,3 +189,17 @@ exhausted. To try a different Gemini model for a conversation, send
 project). To change the default for new conversations, set
 `AUTOPILOT_GEMINI_MODEL` in Render. API quota errors (HTTP 429) require checking
 Google AI Studio API quota and billing.
+
+### Bybit Demo connection
+
+This fork's Docker image defaults to `BYBIT_DEMO=true` and `DRY_RUN=true`.
+Set `BYBIT_TESTNET=false` and supply the keys created inside Bybit **Demo Trading**
+in Render Environment. Demo, testnet and live keys are separate. Demo routing
+uses only `https://api-demo.bybit.com`; it never falls back to the live endpoint.
+Keep `DRY_RUN=true` while checking the connection.
+
+In web chat, send `/bybit-demo` for a deterministic, read-only wallet check
+(no Gemini request or order submission). It reports the configured app routing,
+simulation flag and demo balances, never the key or secret. Render environment
+variables override Docker defaults, so check that the response reports demo
+routing and simulation enabled. No demo or real order is placed by this command.

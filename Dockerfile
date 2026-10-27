@@ -14,6 +14,9 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# This fork defaults to fake-funds routing and simulated order actions.
+ENV BYBIT_DEMO=true
+ENV DRY_RUN=true
 ENV HOME=/data
 ENV AUTOPILOT_STATE_DIR=/data
 ENV AUTOPILOT_WORKSPACE=/data/workspace

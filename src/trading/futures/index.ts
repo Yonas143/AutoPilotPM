@@ -1,3 +1,4 @@
+import { resolveBybitEnvironment, isBybitDryRun } from '../../exchanges/bybit/config';
 /**
  * Futures Trading Module
  *
@@ -80,6 +81,7 @@ export interface FuturesCredentials {
   apiSecret: string;
   passphrase?: string;
   testnet?: boolean;
+  demo?: boolean;
 }
 
 export interface FuturesPosition {
@@ -1625,10 +1627,8 @@ class BybitFuturesClient {
   constructor(credentials: FuturesCredentials, dryRun = false) {
     this.apiKey = credentials.apiKey;
     this.apiSecret = credentials.apiSecret;
-    this.baseUrl = credentials.testnet
-      ? 'https://api-testnet.bybit.com'
-      : 'https://api.bybit.com';
-    this.dryRun = dryRun;
+    this.baseUrl = resolveBybitEnvironment(credentials).baseUrl;
+    this.dryRun = isBybitDryRun({ dryRun });
   }
 
   private sign(timestamp: number, params: string): string {
