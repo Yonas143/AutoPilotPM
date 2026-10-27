@@ -24,7 +24,7 @@ export function getAgentProvider(): 'anthropic' | 'gemini' {
   if (selected && selected !== 'anthropic' && selected !== 'gemini') {
     throw new Error('AUTOPILOT_AI_PROVIDER must be anthropic or gemini');
   }
-  if (selected) return selected;
+  if (selected === 'anthropic' || selected === 'gemini') return selected;
   return process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'gemini';
 }
 
@@ -111,6 +111,9 @@ export function createGeminiAgentClient(apiKey: string, fetcher: typeof fetch = 
           usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
         };
         const candidate = data.candidates?.[0];
+        if (candidate?.finishReason && !['STOP', 'MAX_TOKENS'].includes(candidate.finishReason)) {
+          throw new Error(`Gemini stopped without a usable completion (${candidate.finishReason})`);
+        }
         const nativeParts = candidate?.content?.parts;
         if (!nativeParts?.length) throw new Error('Gemini returned no content; the response may have been blocked');
         const content: Anthropic.ContentBlock[] = [];

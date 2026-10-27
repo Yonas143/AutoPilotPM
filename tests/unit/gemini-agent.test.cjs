@@ -103,6 +103,8 @@ test('API errors are sanitized, blocked content fails, and truncated tool calls 
   await assert.rejects(client.messages.create(request), error => error.status === 429 && !error.message.includes('secret'));
   const blocked = createGeminiAgentClient('test', async () => Response.json({ promptFeedback: { blockReason: 'SAFETY' } }));
   await assert.rejects(blocked.messages.create(request), /no content/);
+  const unsafe = createGeminiAgentClient('test', async () => reply([{ functionCall: { name: 'trade', args: {} } }], 'SAFETY'));
+  await assert.rejects(unsafe.messages.create(request), /without a usable completion/);
   const truncated = createGeminiAgentClient('test', async () => reply([{ functionCall: { name: 'trade', args: {} } }], 'MAX_TOKENS'));
   assert.equal((await truncated.messages.create(request)).stop_reason, 'max_tokens');
 });
